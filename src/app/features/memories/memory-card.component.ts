@@ -5,14 +5,36 @@ import { Memory } from '../../core/models/memory.models';
   selector: 'app-memory-card',
   standalone: true,
   template: `
-    <div class="card" (mouseenter)="showSecondary = true" (mouseleave)="showSecondary = false">
+    <div class="card"
+         [class.bereal-mode]="berealMode"
+         (mouseenter)="showSecondary = true"
+         (mouseleave)="showSecondary = false">
+
+      <!-- Main image (always primary in BeReal mode, toggles on hover otherwise) -->
       <img
-        [src]="proxyUrl(showSecondary ? memory.secondary.url : memory.primary.url)"
+        class="main-img"
+        [src]="proxyUrl(berealMode ? memory.primary.url : (showSecondary ? memory.secondary.url : memory.primary.url))"
         [alt]="memory.memoryDay"
         loading="lazy"
       />
+
+      <!-- PiP selfie overlay – only visible in BeReal mode -->
+      @if (berealMode) {
+      <div class="pip">
+        <img
+          [src]="proxyUrl(memory.secondary.url)"
+          [alt]="memory.memoryDay + ' selfie'"
+          loading="lazy"
+        />
+      </div>
+      }
+
       <div class="badge">{{ memory.memoryDay }}</div>
+
+      @if (!berealMode) {
       <div class="hover-hint">{{ showSecondary ? 'Selfie' : 'World' }}</div>
+      }
+
       @if (memory.location) {
       <div class="location-badge" [title]="locationTitle()">📍</div>
       }
@@ -27,12 +49,32 @@ import { Memory } from '../../core/models/memory.models';
       background: #1a1a1a;
       cursor: pointer;
 
-      img {
+      .main-img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
         transition: opacity 0.2s;
+      }
+
+      /* PiP selfie: top-left, 30% width, matches BeReal app layout */
+      .pip {
+        position: absolute;
+        top: 4%;
+        left: 4%;
+        width: 30%;
+        aspect-ratio: 3 / 4;
+        border-radius: 8%;
+        border: 2px solid #000;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
       }
 
       .badge {
@@ -86,6 +128,7 @@ import { Memory } from '../../core/models/memory.models';
 })
 export class MemoryCardComponent {
   @Input({ required: true }) memory!: Memory;
+  @Input() berealMode = false;
   showSecondary = false;
 
   locationTitle(): string {

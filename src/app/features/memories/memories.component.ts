@@ -24,7 +24,7 @@ export class MemoriesComponent implements OnInit, OnDestroy {
 
     readonly dateFrom = signal('');
     readonly dateTo = signal('');
-    readonly exportMode = signal<'separate' | 'bereal'>('separate');
+    readonly exportMode = signal<'separate' | 'bereal'>('bereal');
 
     readonly filteredMemories = computed(() => {
         const all = this.memories();

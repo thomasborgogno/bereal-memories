@@ -80,8 +80,8 @@ export class BerealService {
     }
 
     /** Download all memories as a single ZIP file.
-     *  mode 'separate' → {date}_primary.jpg + {date}_secondary.jpg per memory
-     *  mode 'bereal'   → {date}.jpg composite (selfie overlaid top-left)
+     *  mode 'separate' → BeReal_{date}_primary.jpg + BeReal_{date}_secondary.jpg per memory
+     *  mode 'bereal'   → BeReal_{date}.jpg composite (selfie overlaid top-left)
      */
     async downloadAllAsZip(memories: Memory[], mode: 'separate' | 'bereal' = 'separate'): Promise<void> {
         const zip = new JSZip();
@@ -101,7 +101,7 @@ export class BerealService {
                         this.fetchBlob(memory.secondary.url),
                     ]);
                     const composite = await this.compositeBerealPiP(primaryBlob, secondaryBlob, memory);
-                    zip.file(`${date}.jpg`, composite);
+                    zip.file(`BeReal_${date}.jpg`, composite);
                     added++;
                 } catch (e) {
                     console.error(`[zip] failed composite for ${date}:`, e);
@@ -112,7 +112,7 @@ export class BerealService {
                 try {
                     const primaryBlob = await this.fetchBlob(memory.primary.url);
                     const primaryJpeg = await this.blobToJpegWithExif(primaryBlob, memory, 'primary');
-                    zip.file(`${date}_primary.jpg`, primaryJpeg);
+                    zip.file(`BeReal_${date}_primary.jpg`, primaryJpeg);
                     added++;
                 } catch (e) {
                     console.error(`[zip] failed primary for ${date}:`, memory.primary.url, e);
@@ -123,7 +123,7 @@ export class BerealService {
                 try {
                     const secondaryBlob = await this.fetchBlob(memory.secondary.url);
                     const secondaryJpeg = await this.blobToJpegWithExif(secondaryBlob, memory, 'secondary');
-                    zip.file(`${date}_secondary.jpg`, secondaryJpeg);
+                    zip.file(`BeReal_${date}_secondary.jpg`, secondaryJpeg);
                     added++;
                 } catch (e) {
                     console.error(`[zip] failed secondary for ${date}:`, memory.secondary.url, e);
@@ -283,6 +283,7 @@ export class BerealService {
     private buildGpsExif(memory: Memory): { GPS?: { [tag: number]: unknown } } {
         if (!memory.location) return {};
         const { latitude, longitude } = memory.location;
+
         // Encode decimal degrees as a single rational [deg × 1e7, 1e7] with minutes=0, seconds=0.
         // This is valid EXIF and avoids any DMS conversion arithmetic.
         // const toRational = (deg: number): [[number, number], [number, number], [number, number]] =>
