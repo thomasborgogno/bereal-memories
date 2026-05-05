@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import piexif from 'piexifjs';
 import { Memory, MemoriesFeedResponse } from '../models/memory.models';
 
 @Injectable({ providedIn: 'root' })
@@ -92,7 +93,8 @@ export class BerealService {
 
             try {
                 const primaryBlob = await this.fetchBlob(memory.primary.url);
-                zip.file(`${date}_primary.jpg`, primaryBlob);
+                const primaryJpeg = await this.blobToJpegWithExif(primaryBlob, memory, 'primary');
+                zip.file(`${date}_primary.jpg`, primaryJpeg);
                 added++;
             } catch (e) {
                 console.error(`[zip] failed primary for ${date}:`, memory.primary.url, e);
@@ -102,7 +104,8 @@ export class BerealService {
 
             try {
                 const secondaryBlob = await this.fetchBlob(memory.secondary.url);
-                zip.file(`${date}_secondary.jpg`, secondaryBlob);
+                const secondaryJpeg = await this.blobToJpegWithExif(secondaryBlob, memory, 'secondary');
+                zip.file(`${date}_secondary.jpg`, secondaryJpeg);
                 added++;
             } catch (e) {
                 console.error(`[zip] failed secondary for ${date}:`, memory.secondary.url, e);
@@ -121,5 +124,86 @@ export class BerealService {
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         saveAs(zipBlob, 'bereal-memories.zip');
         this.downloadProgress$.next(null);
+    }
+
+    /** Convert a blob to JPEG and embed EXIF metadata */
+    private async blobToJpegWithExif(
+        blob: Blob,
+        memory: Memory,
+        label: 'primary' | 'secondary',
+    ): Promise<Blob> {
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+            const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = reject;
+                el.src = objectUrl;
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d')!.drawImage(img, 0, 0);
+            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+            const exifDate = this.toExifDate(memory.takenAt ?? memory.memoryDay + 'T00:00:00.000Z');
+            const description = `BeReal ${label} - ${memory.memoryDay}${memory.isLate ? ' (late)' : ''}`;
+
+            const exifObj: { [ifd: string]: { [tag: number]: unknown } } = {
+                '0th': {
+                    [piexif.ImageIFD.DateTime]: exifDate,
+                    [piexif.ImageIFD.ImageDescription]: description,
+                },
+                Exif: {
+                    [piexif.ExifIFD.DateTimeOriginal]: exifDate,
+                    [piexif.ExifIFD.DateTimeDigitized]: exifDate,
+                    [piexif.ExifIFD.PixelXDimension]: img.naturalWidth,
+                    [piexif.ExifIFD.PixelYDimension]: img.naturalHeight,
+                    [piexif.ExifIFD.ColorSpace]: 1, // sRGB
+                },
+            };
+
+            // gps data is fake, not working
+            // if (memory.location) {
+            //     const { latitude, longitude } = memory.location;
+            //     console.log(`[zip] embedding GPS for ${memory.memoryDay}:`, latitude, longitude);
+            //     exifObj['GPS'] = {
+            //         [piexif.GPSIFD.GPSLatitudeRef]: latitude >= 0 ? 'N' : 'S',
+            //         [piexif.GPSIFD.GPSLatitude]: this.toDms(latitude),
+            //         [piexif.GPSIFD.GPSLongitudeRef]: longitude >= 0 ? 'E' : 'W',
+            //         [piexif.GPSIFD.GPSLongitude]: this.toDms(longitude),
+            //         [piexif.GPSIFD.GPSAltitudeRef]: 0, // above sea level
+            //     };
+            // }
+
+            const exifStr = piexif.dump(exifObj);
+            const withExif = piexif.insert(exifStr, jpegDataUrl);
+
+            // Convert base64 data URL → Blob
+            const binary = atob(withExif.split(',')[1]);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return new Blob([bytes], { type: 'image/jpeg' });
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
+    }
+
+    /** Convert an ISO date string to EXIF date format "YYYY:MM:DD HH:MM:SS" */
+    private toExifDate(dateStr: string): string {
+        const d = new Date(dateStr);
+        const p = (n: number) => String(n).padStart(2, '0');
+        return `${d.getUTCFullYear()}:${p(d.getUTCMonth() + 1)}:${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
+    }
+
+    /** Convert decimal degrees to EXIF DMS rational format */
+    private toDms(decimal: number): [[number, number], [number, number], [number, number]] {
+        const abs = Math.abs(decimal);
+        const d = Math.floor(abs);
+        const mFull = (abs - d) * 60;
+        const m = Math.floor(mFull);
+        const s = Math.round((mFull - m) * 60 * 100); // hundredths of seconds
+        return [[d, 1], [m, 1], [s, 100]];
     }
 }

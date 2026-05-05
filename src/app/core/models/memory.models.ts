@@ -4,6 +4,11 @@ export interface MediaItem {
     height: number;
 }
 
+export interface MemoryLocation {
+    latitude: number;
+    longitude: number;
+}
+
 export interface Memory {
     id: string;
     primary: MediaItem;
@@ -12,6 +17,7 @@ export interface Memory {
     memoryDay: string;
     isLate: boolean;
     takenAt?: string;
+    location?: MemoryLocation;
 }
 
 export interface MemoriesFeedResponse {
