@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
 import { BerealService } from '../../core/services/bereal.service';
 import { Memory } from '../../core/models/memory.models';
@@ -45,9 +46,7 @@ export class MemoriesComponent implements OnInit, OnDestroy {
             const data = await this.bereal.getAllMemories();
             this.memories.set(data);
         } catch (err: unknown) {
-            this.loadError.set(
-                err instanceof Error ? err.message : 'Failed to load memories.'
-            );
+            this.loadError.set(this.extractMessage(err));
         } finally {
             this.loading.set(false);
         }
@@ -60,5 +59,20 @@ export class MemoriesComponent implements OnInit, OnDestroy {
     logout(): void {
         this.auth.logout();
         this.router.navigate(['/']);
+    }
+
+    private extractMessage(err: unknown): string {
+        if (err instanceof HttpErrorResponse) {
+            let body: string;
+            try {
+                body = typeof err.error === 'string' ? err.error : JSON.stringify(err.error, null, 2);
+            } catch {
+                body = String(err.error);
+            }
+            return `[${err.status} ${err.statusText}] ${err.url ?? ''}
+${body}`;
+        }
+        if (err instanceof Error) return err.message;
+        return 'Failed to load memories.';
     }
 }

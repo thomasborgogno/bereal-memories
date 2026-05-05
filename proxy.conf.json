@@ -27,7 +27,7 @@
         "logLevel": "debug"
     },
     "/bereal-api": {
-        "target": "https://mobile.bereal.com/api",
+        "target": "https://mobile-l7.bereal.com/api",
         "secure": true,
         "changeOrigin": true,
         "pathRewrite": {

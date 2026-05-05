@@ -21,7 +21,7 @@
 
     @if (loadError()) {
     <div class="error-banner">
-        {{ loadError() }}
+        <pre class="error-text">{{ loadError() }}</pre>
         <button (click)="loadMemories()">Retry</button>
     </div>
     }

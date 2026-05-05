@@ -15,8 +15,15 @@ export class BerealService {
     async getAllMemories(): Promise<Memory[]> {
         const all: Memory[] = [];
         let cursor: string | undefined;
+        let page = 0;
+        const MAX_PAGES = 200;
 
         do {
+            if (page++ >= MAX_PAGES) {
+                console.warn(`getAllMemories: reached ${MAX_PAGES} pages limit, stopping.`);
+                break;
+            }
+
             const params: Record<string, string> = { limit: '50' };
             if (cursor) params['next'] = cursor;
 
@@ -27,7 +34,7 @@ export class BerealService {
             if (resp.data?.length) {
                 all.push(...resp.data);
             }
-            cursor = resp.next;
+            cursor = resp.next || undefined;
         } while (cursor);
 
         return all;
