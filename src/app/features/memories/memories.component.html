@@ -3,21 +3,50 @@
         <h1>BeReal. <span>Memories</span></h1>
         <div class="header-actions">
             @if (memories().length > 0) {
-            <span class="count">{{ memories().length }} memories</span>
-            <button class="download-btn" (click)="downloadAll()" [disabled]="progress() !== null">
+            <span class="count">
+                {{ filteredMemories().length }}
+                @if (filteredMemories().length !== memories().length) {
+                <span class="count-total"> / {{ memories().length }}</span>
+                }
+                memories
+            </span>
+            <button class="download-btn" (click)="downloadAll()"
+                [disabled]="progress() !== null || filteredMemories().length === 0">
                 @if (progress() !== null) {
                 <span class="progress-text">Downloading {{ progress() }}%</span>
                 <div class="progress-bar">
                     <div class="progress-fill" [style.width.%]="progress()!"></div>
                 </div>
                 } @else {
-                Download All as ZIP
+                Download
+                @if (filteredMemories().length !== memories().length) {
+                filtered
+                }
+                as ZIP
                 }
             </button>
             }
             <button class="logout-btn" (click)="logout()">Logout</button>
         </div>
     </header>
+
+    @if (!loading() && memories().length > 0) {
+    <div class="filter-bar">
+        <label class="filter-label">
+            From
+            <input type="date" [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)" class="date-input"
+                [max]="dateTo() || ''" />
+        </label>
+        <label class="filter-label">
+            To
+            <input type="date" [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)" class="date-input"
+                [min]="dateFrom() || ''" />
+        </label>
+        @if (dateFrom() || dateTo()) {
+        <button class="clear-btn" (click)="clearFilter()">Clear filter</button>
+        }
+    </div>
+    }
 
     @if (loadError()) {
     <div class="error-banner">
@@ -33,12 +62,18 @@
     </div>
     }
 
-    @if (!loading() && memories().length === 0 && !loadError()) {
-    <div class="empty">No memories found.</div>
+    @if (!loading() && filteredMemories().length === 0 && !loadError()) {
+    <div class="empty">
+        @if (memories().length > 0) {
+        No memories in this date range.
+        } @else {
+        No memories found.
+        }
+    </div>
     }
 
     <div class="grid">
-        @for (memory of memories(); track memory.id) {
+        @for (memory of filteredMemories(); track $index) {
         <app-memory-card [memory]="memory" />
         }
     </div>

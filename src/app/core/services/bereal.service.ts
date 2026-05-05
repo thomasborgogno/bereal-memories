@@ -17,12 +17,22 @@ export class BerealService {
         let cursor: string | undefined;
         let page = 0;
         const MAX_PAGES = 200;
+        // Track cursors we've already *sent* as request params to avoid re-fetching the same page
+        const usedCursors = new Set<string>();
+        const FIRST_PAGE_KEY = '__first__';
 
         do {
             if (page++ >= MAX_PAGES) {
                 console.warn(`getAllMemories: reached ${MAX_PAGES} pages limit, stopping.`);
                 break;
             }
+
+            const cursorKey = cursor ?? FIRST_PAGE_KEY;
+            if (usedCursors.has(cursorKey)) {
+                console.warn('[memories] already fetched with cursor, stopping:', cursor);
+                break;
+            }
+            usedCursors.add(cursorKey);
 
             const params: Record<string, string> = { limit: '50' };
             if (cursor) params['next'] = cursor;
@@ -31,13 +41,28 @@ export class BerealService {
                 this.http.get<MemoriesFeedResponse>('/bereal-api/feeds/memories', { params })
             );
 
+            console.log(`[memories] page ${page}, data=${resp.data?.length ?? 0}, next=${resp.next}`);
+
             if (resp.data?.length) {
                 all.push(...resp.data);
             }
+
             cursor = resp.next || undefined;
         } while (cursor);
 
-        return all;
+        // Deduplicate by memoryDay (BeReal is one memory per day) as safety net
+        const seen = new Set<string>();
+        const deduped: Memory[] = [];
+        for (const m of all) {
+            const key = m.memoryDay ?? m.takenAt ?? m.id;
+            if (!seen.has(key)) {
+                seen.add(key);
+                deduped.push(m);
+            }
+        }
+
+        console.log(`[memories] total fetched=${all.length}, after dedup=${deduped.length}`);
+        return deduped;
     }
 
     /** Rewrite a storage.bere.al URL to go through the dev proxy */

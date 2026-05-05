@@ -2,9 +2,9 @@ import { Component, Input } from '@angular/core';
 import { Memory } from '../../core/models/memory.models';
 
 @Component({
-    selector: 'app-memory-card',
-    standalone: true,
-    template: `
+  selector: 'app-memory-card',
+  standalone: true,
+  template: `
     <div class="card" (mouseenter)="showSecondary = true" (mouseleave)="showSecondary = false">
       <img
         [src]="proxyUrl(showSecondary ? memory.secondary.url : memory.primary.url)"
@@ -12,13 +12,10 @@ import { Memory } from '../../core/models/memory.models';
         loading="lazy"
       />
       <div class="badge">{{ memory.memoryDay }}</div>
-      @if (memory.isLate) {
-        <div class="late-badge">Late</div>
-      }
       <div class="hover-hint">{{ showSecondary ? 'Selfie' : 'World' }}</div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .card {
       position: relative;
       border-radius: 12px;
@@ -75,10 +72,10 @@ import { Memory } from '../../core/models/memory.models';
   `],
 })
 export class MemoryCardComponent {
-    @Input({ required: true }) memory!: Memory;
-    showSecondary = false;
+  @Input({ required: true }) memory!: Memory;
+  showSecondary = false;
 
-    proxyUrl(url: string): string {
-        return url.replace(/^https?:\/\/storage\.bere\.al/, '/bereal-storage');
-    }
+  proxyUrl(url: string): string {
+    return url.replace(/^https?:\/\/storage\.bere\.al/, '/bereal-storage');
+  }
 }
