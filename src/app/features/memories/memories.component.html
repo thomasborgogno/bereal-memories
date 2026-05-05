@@ -1,0 +1,45 @@
+<div class="memories-page">
+    <header>
+        <h1>BeReal. <span>Memories</span></h1>
+        <div class="header-actions">
+            @if (memories().length > 0) {
+            <span class="count">{{ memories().length }} memories</span>
+            <button class="download-btn" (click)="downloadAll()" [disabled]="progress() !== null">
+                @if (progress() !== null) {
+                <span class="progress-text">Downloading {{ progress() }}%</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="progress()!"></div>
+                </div>
+                } @else {
+                Download All as ZIP
+                }
+            </button>
+            }
+            <button class="logout-btn" (click)="logout()">Logout</button>
+        </div>
+    </header>
+
+    @if (loadError()) {
+    <div class="error-banner">
+        {{ loadError() }}
+        <button (click)="loadMemories()">Retry</button>
+    </div>
+    }
+
+    @if (loading()) {
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading your memories…</p>
+    </div>
+    }
+
+    @if (!loading() && memories().length === 0 && !loadError()) {
+    <div class="empty">No memories found.</div>
+    }
+
+    <div class="grid">
+        @for (memory of memories(); track memory.id) {
+        <app-memory-card [memory]="memory" />
+        }
+    </div>
+</div>

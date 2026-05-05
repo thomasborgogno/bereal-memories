@@ -1,0 +1,111 @@
+:host {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 380px;
+    padding: 1rem;
+}
+
+.login-card {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 2rem;
+
+    .logo-text {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+
+    .logo-sub {
+        color: #888;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ccc;
+    }
+
+    input {
+        background: #2a2a2a;
+        border: 1px solid #333;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+        outline: none;
+        transition: border-color 0.2s;
+
+        &:focus {
+            border-color: #fff;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+        }
+
+        &::placeholder {
+            color: #555;
+        }
+    }
+
+    .hint {
+        font-size: 0.75rem;
+        color: #666;
+        margin: -0.25rem 0 0;
+    }
+
+    .error {
+        color: #ff5555;
+        font-size: 0.82rem;
+    }
+
+    button {
+        background: #fff;
+        border: none;
+        border-radius: 8px;
+        color: #000;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 700;
+        padding: 0.85rem;
+        transition: opacity 0.2s;
+        margin-top: 0.5rem;
+
+        &:hover:not(:disabled) {
+            opacity: 0.85;
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        &.secondary {
+            background: transparent;
+            border: 1px solid #333;
+            color: #aaa;
+            margin-top: 0;
+        }
+    }
+}

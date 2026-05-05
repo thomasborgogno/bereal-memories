@@ -1,0 +1,47 @@
+{
+    "/bereal-auth": {
+        "target": "https://auth.bereal.team",
+        "secure": true,
+        "changeOrigin": true,
+        "pathRewrite": {
+            "^/bereal-auth": ""
+        },
+        "logLevel": "debug"
+    },
+    "/securetoken-api": {
+        "target": "https://securetoken.googleapis.com",
+        "secure": true,
+        "changeOrigin": true,
+        "pathRewrite": {
+            "^/securetoken-api": ""
+        },
+        "logLevel": "debug"
+    },
+    "/identitytoolkit-api": {
+        "target": "https://identitytoolkit.googleapis.com",
+        "secure": true,
+        "changeOrigin": true,
+        "pathRewrite": {
+            "^/identitytoolkit-api": ""
+        },
+        "logLevel": "debug"
+    },
+    "/bereal-api": {
+        "target": "https://mobile.bereal.com/api",
+        "secure": true,
+        "changeOrigin": true,
+        "pathRewrite": {
+            "^/bereal-api": ""
+        },
+        "logLevel": "debug"
+    },
+    "/bereal-storage": {
+        "target": "https://storage.bere.al",
+        "secure": true,
+        "changeOrigin": true,
+        "pathRewrite": {
+            "^/bereal-storage": ""
+        },
+        "logLevel": "debug"
+    }
+}

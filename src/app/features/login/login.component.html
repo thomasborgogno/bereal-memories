@@ -1,0 +1,41 @@
+<div class="login-container">
+    <div class="login-card">
+        <div class="logo">
+            <span class="logo-text">BeReal.</span>
+            <p class="logo-sub">Memories Downloader</p>
+        </div>
+
+        @if (step() === 'phone') {
+        <form (ngSubmit)="onRequestOtp()" #phoneForm="ngForm">
+            <label for="phone">Phone Number</label>
+            <input id="phone" type="tel" placeholder="+1234567890" [(ngModel)]="phoneNumber" name="phone" required
+                [disabled]="loading()" />
+            <p class="hint">Include country code (e.g. +39...)</p>
+            @if (error()) {
+            <p class="error">{{ error() }}</p>
+            }
+            <button type="submit" [disabled]="loading() || !phoneNumber">
+                @if (loading()) { Sending… } @else { Send OTP }
+            </button>
+        </form>
+        }
+
+        @if (step() === 'otp') {
+        <form (ngSubmit)="onVerifyOtp()" #otpForm="ngForm">
+            <label for="otp">Verification Code</label>
+            <input id="otp" type="text" inputmode="numeric" placeholder="123456" [(ngModel)]="otpCode" name="otp"
+                required maxlength="6" [disabled]="loading()" />
+            <p class="hint">Enter the SMS code sent to {{ phoneNumber }}</p>
+            @if (error()) {
+            <p class="error">{{ error() }}</p>
+            }
+            <button type="submit" [disabled]="loading() || !otpCode">
+                @if (loading()) { Verifying… } @else { Verify }
+            </button>
+            <button type="button" class="secondary" (click)="goBack()" [disabled]="loading()">
+                Back
+            </button>
+        </form>
+        }
+    </div>
+</div>
