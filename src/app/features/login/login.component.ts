@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
 
 type Step = 'phone' | 'otp';
@@ -60,6 +61,10 @@ export class LoginComponent {
     }
 
     private extractMessage(err: unknown, fallback: string): string {
+        if (err instanceof HttpErrorResponse) {
+            const serverMsg = err.error?.message ?? err.error?.error ?? JSON.stringify(err.error);
+            return `[${err.status}] ${serverMsg ?? err.message}`;
+        }
         if (err instanceof Error) return err.message;
         return fallback;
     }

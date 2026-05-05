@@ -1,3 +1,7 @@
+export interface DataExchangeResponse {
+    dataExchange: string;
+}
+
 export interface VonageRequestResponse {
     vonageRequestId: string;
 }

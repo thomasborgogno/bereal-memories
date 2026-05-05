@@ -7,13 +7,17 @@ import {
     BEREAL_CLIENT_SECRET,
     FIREBASE_HEADERS,
     BEREAL_HEADERS,
+    getOrCreateDeviceId,
 } from '../constants';
 import {
+    DataExchangeResponse,
     VonageRequestResponse,
     VonageVerifyResponse,
     FirebaseTokenResponse,
     BeRealTokens,
 } from '../models/auth.models';
+import { SignatureService } from './signature.service';
+import { RecaptchaService } from './recaptcha.service';
 
 const STORAGE_KEY = 'bereal_tokens';
 
@@ -22,7 +26,11 @@ export class AuthService {
     private tokens: BeRealTokens | null = null;
     readonly isAuthenticated = signal(false);
 
-    constructor(private http: HttpClient) {
+    constructor(
+        private http: HttpClient,
+        private signature: SignatureService,
+        private recaptcha: RecaptchaService,
+    ) {
         this.loadTokens();
     }
 
@@ -58,14 +66,47 @@ export class AuthService {
         this.isAuthenticated.set(false);
     }
 
-    /** Step 1 – Send OTP via Vonage */
+    /** Step 1a – Pre-flight: obtain dataExchange blob required for the CAPTCHA. */
+    private async dataExchange(phoneNumber: string): Promise<string> {
+        const deviceId = getOrCreateDeviceId();
+        const headers = await this.signature.buildHeaders(deviceId);
+        const response = await firstValueFrom(
+            this.http.post<DataExchangeResponse>(
+                '/bereal-auth/api/vonage/data-exchange',
+                { phoneNumber },
+                { headers: new HttpHeaders(headers) }
+            )
+        );
+        return response.dataExchange;
+    }
+
+    /** Step 1 – Send OTP via Vonage (data-exchange + reCAPTCHA + request-code). */
     async requestOtp(phoneNumber: string): Promise<string> {
-        const body = { phoneNumber, deviceId: crypto.randomUUID() };
+        const deviceId = getOrCreateDeviceId();
+
+        // data-exchange is a pre-flight required by BeReal; result is not used
+        // for reCAPTCHA (only for Arkose Labs), so we don't block on it.
+        this.dataExchange(phoneNumber).catch(() => void 0);
+        let recaptchaToken = '';
+        try {
+            recaptchaToken = await this.recaptcha.execute('send_otp');
+        } catch (e) {
+            console.warn('reCAPTCHA unavailable (blocked by browser/network), proceeding without token:', e);
+        }
+
+        const headers = await this.signature.buildHeaders(deviceId);
+        const body: Record<string, unknown> = {
+            phoneNumber,
+            deviceId,
+        };
+        if (recaptchaToken) {
+            body['tokens'] = [{ token: recaptchaToken, identifier: 'RE' }];
+        }
         const response = await firstValueFrom(
             this.http.post<VonageRequestResponse>(
                 '/bereal-auth/api/vonage/request-code',
                 body,
-                { headers: new HttpHeaders(BEREAL_HEADERS) }
+                { headers: new HttpHeaders(headers) }
             )
         );
         return response.vonageRequestId;
@@ -73,13 +114,15 @@ export class AuthService {
 
     /** Step 2 – Verify OTP, exchange for BeReal tokens */
     async verifyOtp(code: string, vonageRequestId: string): Promise<void> {
+        const deviceId = getOrCreateDeviceId();
+
         // 2a. Verify OTP with Vonage → custom Firebase token
-        const verifyBody = { code, vonageRequestId };
+        const verifyHeaders = await this.signature.buildHeaders(deviceId);
         const vonageResp = await firstValueFrom(
             this.http.post<VonageVerifyResponse>(
                 '/bereal-auth/api/vonage/check-code',
-                verifyBody,
-                { headers: new HttpHeaders(BEREAL_HEADERS) }
+                { code, vonageRequestId },
+                { headers: new HttpHeaders(verifyHeaders) }
             )
         );
 
@@ -93,17 +136,17 @@ export class AuthService {
         );
 
         // 2c. Exchange Firebase id_token for BeReal access + refresh tokens
-        const berealBody = {
-            grant_type: 'firebase',
-            client_id: BEREAL_CLIENT_ID,
-            client_secret: BEREAL_CLIENT_SECRET,
-            token: firebaseResp.idToken,
-        };
+        const tokenHeaders = await this.signature.buildHeaders(deviceId);
         const berealTokens = await firstValueFrom(
             this.http.post<BeRealTokens>(
                 '/bereal-auth/token?grant_type=firebase',
-                berealBody,
-                { headers: new HttpHeaders(BEREAL_HEADERS) }
+                {
+                    grant_type: 'firebase',
+                    client_id: BEREAL_CLIENT_ID,
+                    client_secret: BEREAL_CLIENT_SECRET,
+                    token: firebaseResp.idToken,
+                },
+                { headers: new HttpHeaders(tokenHeaders) }
             )
         );
 
@@ -118,17 +161,15 @@ export class AuthService {
             throw new Error('No refresh token available');
         }
 
-        const body = {
-            grant_type: 'refresh_token',
-            client_id: BEREAL_CLIENT_ID,
-            client_secret: BEREAL_CLIENT_SECRET,
-            refresh_token: refreshToken,
-        };
-
         const tokens = await firstValueFrom(
             this.http.post<BeRealTokens>(
                 '/bereal-auth/token?grant_type=refresh_token',
-                body,
+                {
+                    grant_type: 'refresh_token',
+                    client_id: BEREAL_CLIENT_ID,
+                    client_secret: BEREAL_CLIENT_SECRET,
+                    refresh_token: refreshToken,
+                },
                 { headers: new HttpHeaders(BEREAL_HEADERS) }
             )
         );
@@ -136,3 +177,4 @@ export class AuthService {
         this.saveTokens(tokens);
     }
 }
+

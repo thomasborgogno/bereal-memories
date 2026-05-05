@@ -1,6 +1,6 @@
 {
     "/bereal-auth": {
-        "target": "https://auth.bereal.team",
+        "target": "https://auth-l7.bereal.com",
         "secure": true,
         "changeOrigin": true,
         "pathRewrite": {
