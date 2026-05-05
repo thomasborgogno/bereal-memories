@@ -76,6 +76,8 @@ export class MemoryCardComponent {
   showSecondary = false;
 
   proxyUrl(url: string): string {
-    return url.replace(/^https?:\/\/storage\.bere\.al/, '/bereal-storage');
+    return url
+      .replace(/^https?:\/\/storage\.bere\.al/, '/bereal-storage')
+      .replace(/^https?:\/\/cdn-[a-z0-9]+\.bereal\.network/, '/bereal-cdn');
   }
 }

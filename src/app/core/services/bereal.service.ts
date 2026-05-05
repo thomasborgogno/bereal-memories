@@ -35,7 +35,7 @@ export class BerealService {
             usedCursors.add(cursorKey);
 
             const params: Record<string, string> = { limit: '50' };
-            if (cursor) params['next'] = cursor;
+            if (cursor) params['from'] = cursor;
 
             const resp = await firstValueFrom(
                 this.http.get<MemoriesFeedResponse>('/bereal-api/feeds/memories', { params })
@@ -65,9 +65,11 @@ export class BerealService {
         return deduped;
     }
 
-    /** Rewrite a storage.bere.al URL to go through the dev proxy */
+    /** Rewrite CDN URLs to go through the dev proxy (avoids CORS). */
     private proxyImageUrl(url: string): string {
-        return url.replace(/^https?:\/\/storage\.bere\.al/, '/bereal-storage');
+        return url
+            .replace(/^https?:\/\/storage\.bere\.al/, '/bereal-storage')
+            .replace(/^https?:\/\/cdn-[a-z0-9]+\.bereal\.network/, '/bereal-cdn');
     }
 
     private async fetchBlob(url: string): Promise<Blob> {
@@ -81,6 +83,7 @@ export class BerealService {
         const zip = new JSZip();
         const total = memories.length * 2; // primary + secondary per memory
         let done = 0;
+        let added = 0;
 
         this.downloadProgress$.next(0);
 
@@ -90,8 +93,9 @@ export class BerealService {
             try {
                 const primaryBlob = await this.fetchBlob(memory.primary.url);
                 zip.file(`${date}_primary.jpg`, primaryBlob);
-            } catch {
-                // skip failed images silently
+                added++;
+            } catch (e) {
+                console.error(`[zip] failed primary for ${date}:`, memory.primary.url, e);
             }
             done++;
             this.downloadProgress$.next(Math.round((done / total) * 100));
@@ -99,11 +103,19 @@ export class BerealService {
             try {
                 const secondaryBlob = await this.fetchBlob(memory.secondary.url);
                 zip.file(`${date}_secondary.jpg`, secondaryBlob);
-            } catch {
-                // skip failed images silently
+                added++;
+            } catch (e) {
+                console.error(`[zip] failed secondary for ${date}:`, memory.secondary.url, e);
             }
             done++;
             this.downloadProgress$.next(Math.round((done / total) * 100));
+        }
+
+        console.log(`[zip] files added: ${added} / ${total}`);
+
+        if (added === 0) {
+            this.downloadProgress$.next(null);
+            throw new Error(`Could not download any image. Check the console for details.`);
         }
 
         const zipBlob = await zip.generateAsync({ type: 'blob' });

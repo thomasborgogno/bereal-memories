@@ -79,7 +79,11 @@ export class MemoriesComponent implements OnInit, OnDestroy {
     }
 
     async downloadAll(): Promise<void> {
-        await this.bereal.downloadAllAsZip(this.filteredMemories());
+        try {
+            await this.bereal.downloadAllAsZip(this.filteredMemories());
+        } catch (err: unknown) {
+            this.loadError.set(this.extractMessage(err));
+        }
     }
 
     logout(): void {

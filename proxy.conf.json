@@ -43,5 +43,14 @@
             "^/bereal-storage": ""
         },
         "logLevel": "debug"
+    },
+    "/bereal-cdn": {
+        "target": "https://cdn-us1.bereal.network",
+        "secure": true,
+        "changeOrigin": true,
+        "pathRewrite": {
+            "^\/bereal-cdn": ""
+        },
+        "logLevel": "debug"
     }
 }
