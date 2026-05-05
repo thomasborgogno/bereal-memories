@@ -47,6 +47,13 @@
         @if (dateFrom() || dateTo()) {
         <button class="clear-btn" (click)="clearFilter()">Clear filter</button>
         }
+        <div class="filter-sep"></div>
+        <label class="mode-toggle" [class.active]="exportMode() === 'bereal'">
+            <input type="checkbox" [checked]="exportMode() === 'bereal'"
+                (change)="exportMode.set($any($event.target).checked ? 'bereal' : 'separate')" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label-text">BeReal format</span>
+        </label>
     </div>
     }
 

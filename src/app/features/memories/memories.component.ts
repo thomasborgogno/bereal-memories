@@ -24,6 +24,7 @@ export class MemoriesComponent implements OnInit, OnDestroy {
 
     readonly dateFrom = signal('');
     readonly dateTo = signal('');
+    readonly exportMode = signal<'separate' | 'bereal'>('separate');
 
     readonly filteredMemories = computed(() => {
         const all = this.memories();
@@ -86,7 +87,7 @@ export class MemoriesComponent implements OnInit, OnDestroy {
 
     async downloadAll(): Promise<void> {
         try {
-            await this.bereal.downloadAllAsZip(this.filteredMemories());
+            await this.bereal.downloadAllAsZip(this.filteredMemories(), this.exportMode());
         } catch (err: unknown) {
             this.loadError.set(this.extractMessage(err));
         }

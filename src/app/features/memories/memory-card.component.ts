@@ -13,6 +13,9 @@ import { Memory } from '../../core/models/memory.models';
       />
       <div class="badge">{{ memory.memoryDay }}</div>
       <div class="hover-hint">{{ showSecondary ? 'Selfie' : 'World' }}</div>
+      @if (memory.location) {
+      <div class="location-badge" [title]="locationTitle()">📍</div>
+      }
     </div>
   `,
   styles: [`
@@ -68,12 +71,28 @@ import { Memory } from '../../core/models/memory.models';
         font-size: 0.68rem;
         padding: 2px 6px;
       }
+
+      .location-badge {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 6px;
+        font-size: 0.8rem;
+        padding: 2px 5px;
+      }
     }
   `],
 })
 export class MemoryCardComponent {
   @Input({ required: true }) memory!: Memory;
   showSecondary = false;
+
+  locationTitle(): string {
+    if (!this.memory.location) return '';
+    const { latitude, longitude } = this.memory.location;
+    return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+  }
 
   proxyUrl(url: string): string {
     return url

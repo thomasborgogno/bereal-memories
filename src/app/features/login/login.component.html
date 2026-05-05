@@ -8,15 +8,16 @@
         @if (mode() === 'select') {
         <p class="mode-prompt">How would you like to continue?</p>
         <div class="mode-cards">
-            <button class="mode-card" type="button" (click)="selectLogin()">
-                <span class="mode-icon">📱</span>
-                <span class="mode-title">Sign in with BeReal</span>
-                <span class="mode-desc">Authenticate via phone + OTP to fetch your memories live</span>
-            </button>
             <button class="mode-card" type="button" (click)="selectImport()">
                 <span class="mode-icon">📦</span>
                 <span class="mode-title">Use Data Export</span>
                 <span class="mode-desc">Upload your BeReal GDPR export ZIP — no account access needed</span>
+            </button>
+            <button class="mode-card" type="button" (click)="selectLogin()">
+                <span class="mode-icon">📱</span>
+                <span class="mode-title">Sign in with BeReal</span>
+                <span class="mode-desc">Authenticate via phone + OTP to fetch your memories live, may not be able to
+                    load all memories</span>
             </button>
         </div>
         }

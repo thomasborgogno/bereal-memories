@@ -79,10 +79,13 @@ export class BerealService {
         );
     }
 
-    /** Download all memories (primary + secondary) as a single ZIP file */
-    async downloadAllAsZip(memories: Memory[]): Promise<void> {
+    /** Download all memories as a single ZIP file.
+     *  mode 'separate' → {date}_primary.jpg + {date}_secondary.jpg per memory
+     *  mode 'bereal'   → {date}.jpg composite (selfie overlaid top-left)
+     */
+    async downloadAllAsZip(memories: Memory[], mode: 'separate' | 'bereal' = 'separate'): Promise<void> {
         const zip = new JSZip();
-        const total = memories.length * 2; // primary + secondary per memory
+        const total = mode === 'bereal' ? memories.length : memories.length * 2;
         let done = 0;
         let added = 0;
 
@@ -91,27 +94,43 @@ export class BerealService {
         for (const memory of memories) {
             const date = memory.memoryDay ?? memory.takenAt?.slice(0, 10) ?? memory.id;
 
-            try {
-                const primaryBlob = await this.fetchBlob(memory.primary.url);
-                const primaryJpeg = await this.blobToJpegWithExif(primaryBlob, memory, 'primary');
-                zip.file(`${date}_primary.jpg`, primaryJpeg);
-                added++;
-            } catch (e) {
-                console.error(`[zip] failed primary for ${date}:`, memory.primary.url, e);
-            }
-            done++;
-            this.downloadProgress$.next(Math.round((done / total) * 100));
+            if (mode === 'bereal') {
+                try {
+                    const [primaryBlob, secondaryBlob] = await Promise.all([
+                        this.fetchBlob(memory.primary.url),
+                        this.fetchBlob(memory.secondary.url),
+                    ]);
+                    const composite = await this.compositeBerealPiP(primaryBlob, secondaryBlob, memory);
+                    zip.file(`${date}.jpg`, composite);
+                    added++;
+                } catch (e) {
+                    console.error(`[zip] failed composite for ${date}:`, e);
+                }
+                done++;
+                this.downloadProgress$.next(Math.round((done / total) * 100));
+            } else {
+                try {
+                    const primaryBlob = await this.fetchBlob(memory.primary.url);
+                    const primaryJpeg = await this.blobToJpegWithExif(primaryBlob, memory, 'primary');
+                    zip.file(`${date}_primary.jpg`, primaryJpeg);
+                    added++;
+                } catch (e) {
+                    console.error(`[zip] failed primary for ${date}:`, memory.primary.url, e);
+                }
+                done++;
+                this.downloadProgress$.next(Math.round((done / total) * 100));
 
-            try {
-                const secondaryBlob = await this.fetchBlob(memory.secondary.url);
-                const secondaryJpeg = await this.blobToJpegWithExif(secondaryBlob, memory, 'secondary');
-                zip.file(`${date}_secondary.jpg`, secondaryJpeg);
-                added++;
-            } catch (e) {
-                console.error(`[zip] failed secondary for ${date}:`, memory.secondary.url, e);
+                try {
+                    const secondaryBlob = await this.fetchBlob(memory.secondary.url);
+                    const secondaryJpeg = await this.blobToJpegWithExif(secondaryBlob, memory, 'secondary');
+                    zip.file(`${date}_secondary.jpg`, secondaryJpeg);
+                    added++;
+                } catch (e) {
+                    console.error(`[zip] failed secondary for ${date}:`, memory.secondary.url, e);
+                }
+                done++;
+                this.downloadProgress$.next(Math.round((done / total) * 100));
             }
-            done++;
-            this.downloadProgress$.next(Math.round((done / total) * 100));
         }
 
         console.log(`[zip] files added: ${added} / ${total}`);
@@ -124,6 +143,81 @@ export class BerealService {
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         saveAs(zipBlob, 'bereal-memories.zip');
         this.downloadProgress$.next(null);
+    }
+
+    /** Composite primary + secondary into a BeReal-style picture-in-picture JPEG.
+     *  Selfie is overlaid top-left at ~30% width with rounded corners + black border. */
+    private async compositeBerealPiP(primaryBlob: Blob, secondaryBlob: Blob, memory: Memory): Promise<Blob> {
+        const [primaryImg, secondaryImg] = await Promise.all([
+            this.loadImageFromBlob(primaryBlob),
+            this.loadImageFromBlob(secondaryBlob),
+        ]);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = primaryImg.naturalWidth;
+        canvas.height = primaryImg.naturalHeight;
+        const ctx = canvas.getContext('2d')!;
+
+        // Draw main (world) photo full-size
+        ctx.drawImage(primaryImg, 0, 0);
+
+        // PiP dimensions: selfie at 30% of main width, maintaining selfie's aspect ratio
+        const pipW = Math.round(canvas.width * 0.30);
+        const pipH = Math.round(pipW * (secondaryImg.naturalHeight / secondaryImg.naturalWidth));
+        const margin = Math.round(canvas.width * 0.025);
+        const radius = Math.round(pipW * 0.08);
+        const borderW = Math.max(3, Math.round(pipW * 0.012));
+        const x = margin;
+        const y = margin;
+
+        // Clip-draw selfie with rounded corners
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(x, y, pipW, pipH, radius);
+        ctx.clip();
+        ctx.drawImage(secondaryImg, x, y, pipW, pipH);
+        ctx.restore();
+
+        // Black border
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = borderW;
+        ctx.beginPath();
+        ctx.roundRect(x + borderW / 2, y + borderW / 2, pipW - borderW, pipH - borderW, radius);
+        ctx.stroke();
+
+        // Embed EXIF on the composite
+        const exifDate = this.toExifDate(memory.takenAt ?? memory.memoryDay + 'T00:00:00.000Z');
+        const description = `BeReal - ${memory.memoryDay}${memory.isLate ? ' (late)' : ''}`;
+        const exifObj: { [ifd: string]: { [tag: number]: unknown } } = {
+            '0th': {
+                [piexif.ImageIFD.DateTime]: exifDate,
+                [piexif.ImageIFD.ImageDescription]: description,
+            },
+            Exif: {
+                [piexif.ExifIFD.DateTimeOriginal]: exifDate,
+                [piexif.ExifIFD.DateTimeDigitized]: exifDate,
+                [piexif.ExifIFD.PixelXDimension]: canvas.width,
+                [piexif.ExifIFD.PixelYDimension]: canvas.height,
+                [piexif.ExifIFD.ColorSpace]: 1,
+            },
+            ...this.buildGpsExif(memory),
+        };
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        const withExif = piexif.insert(piexif.dump(exifObj), jpegDataUrl);
+        const binary = atob(withExif.split(',')[1]);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: 'image/jpeg' });
+    }
+
+    private loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
+        const url = URL.createObjectURL(blob);
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+            img.src = url;
+        });
     }
 
     /** Convert a blob to JPEG and embed EXIF metadata */
@@ -162,20 +256,8 @@ export class BerealService {
                     [piexif.ExifIFD.PixelYDimension]: img.naturalHeight,
                     [piexif.ExifIFD.ColorSpace]: 1, // sRGB
                 },
+                ...this.buildGpsExif(memory),
             };
-
-            // gps data is fake, not working
-            // if (memory.location) {
-            //     const { latitude, longitude } = memory.location;
-            //     console.log(`[zip] embedding GPS for ${memory.memoryDay}:`, latitude, longitude);
-            //     exifObj['GPS'] = {
-            //         [piexif.GPSIFD.GPSLatitudeRef]: latitude >= 0 ? 'N' : 'S',
-            //         [piexif.GPSIFD.GPSLatitude]: this.toDms(latitude),
-            //         [piexif.GPSIFD.GPSLongitudeRef]: longitude >= 0 ? 'E' : 'W',
-            //         [piexif.GPSIFD.GPSLongitude]: this.toDms(longitude),
-            //         [piexif.GPSIFD.GPSAltitudeRef]: 0, // above sea level
-            //     };
-            // }
 
             const exifStr = piexif.dump(exifObj);
             const withExif = piexif.insert(exifStr, jpegDataUrl);
@@ -197,13 +279,35 @@ export class BerealService {
         return `${d.getUTCFullYear()}:${p(d.getUTCMonth() + 1)}:${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
     }
 
-    /** Convert decimal degrees to EXIF DMS rational format */
-    private toDms(decimal: number): [[number, number], [number, number], [number, number]] {
-        const abs = Math.abs(decimal);
-        const d = Math.floor(abs);
-        const mFull = (abs - d) * 60;
-        const m = Math.floor(mFull);
-        const s = Math.round((mFull - m) * 60 * 100); // hundredths of seconds
-        return [[d, 1], [m, 1], [s, 100]];
+    /** Build the GPS IFD object if the memory has location data, otherwise return {}. */
+    private buildGpsExif(memory: Memory): { GPS?: { [tag: number]: unknown } } {
+        if (!memory.location) return {};
+        const { latitude, longitude } = memory.location;
+        // Encode decimal degrees as a single rational [deg × 1e7, 1e7] with minutes=0, seconds=0.
+        // This is valid EXIF and avoids any DMS conversion arithmetic.
+        // const toRational = (deg: number): [[number, number], [number, number], [number, number]] =>
+        //     [[Math.round(Math.abs(deg) * 1e7), 1e7], [0, 1], [0, 1]];
+        const toRational = (decimal: number): [[number, number], [number, number], [number, number]] => {
+            const absolute = Math.abs(decimal);
+            const degrees = Math.floor(absolute);
+            const minutesDecimal = (absolute - degrees) * 60;
+            const minutes = Math.floor(minutesDecimal);
+            const seconds = Math.round((minutesDecimal - minutes) * 60 * 100); // Precisione al centesimo di secondo
+
+            return [
+                [degrees, 1],
+                [minutes, 1],
+                [seconds, 100]
+            ];
+        };
+        return {
+            GPS: {
+                [piexif.GPSIFD.GPSVersionID]: [2, 3, 0, 0],
+                [piexif.GPSIFD.GPSLatitudeRef]: latitude >= 0 ? 'N' : 'S',
+                [piexif.GPSIFD.GPSLatitude]: toRational(latitude),
+                [piexif.GPSIFD.GPSLongitudeRef]: longitude >= 0 ? 'E' : 'W',
+                [piexif.GPSIFD.GPSLongitude]: toRational(longitude),
+            },
+        };
     }
 }
