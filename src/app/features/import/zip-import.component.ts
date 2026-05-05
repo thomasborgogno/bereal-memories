@@ -15,6 +15,7 @@ export class ZipImportComponent {
     readonly progress = signal<number | null>(null);
     readonly error = signal<string | null>(null);
     readonly isDragOver = signal(false);
+    readonly showHelp = signal(false);
 
     constructor(
         private zipImport: ZipImportService,

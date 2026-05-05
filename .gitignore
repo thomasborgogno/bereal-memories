@@ -45,3 +45,5 @@ src/app/test/
 # System files
 .DS_Store
 Thumbs.db
+
+.firebase/

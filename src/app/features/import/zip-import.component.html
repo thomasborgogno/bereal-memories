@@ -10,6 +10,47 @@
             download your memories without signing in.
         </p>
 
+        <div class="help-section">
+            <button type="button" class="help-toggle" (click)="showHelp.set(!showHelp())">
+                <span class="help-toggle-icon">{{ showHelp() ? '▾' : '▸' }}</span>
+                How to get the ZIP file?
+            </button>
+            @if (showHelp()) {
+            <div class="help-body">
+                <ol class="help-steps">
+                    <li>
+                        Open <strong>BeReal</strong> app → tap your <strong>profile picture</strong> (bottom right)
+                    </li>
+                    <li>
+                        Tap the <strong>⚙️ gear icon</strong> (top right) to open Settings
+                    </li>
+                    <li>
+                        Navigate: <strong>Help → Contact us → Ask a Question → Troubleshooting → Other → Still need
+                            help?</strong>
+                    </li>
+                    <li>
+                        Tap <strong>Select Topic</strong> → choose <em>"I'd like to request a copy of my data"</em>
+                    </li>
+                    <li>
+                        Paste this message and send:
+                        <blockquote class="help-gdpr">
+                            Under GDPR Article 15 and Article 20, I am requesting a complete copy of all personal data
+                            you hold about me, including all my BeReal photos and associated metadata. Please provide
+                            this data in a commonly used, machine-readable format (such as JSON or ZIP) within the
+                            30-day period required by law. Thank you.
+                        </blockquote>
+                    </li>
+                    <li>Wait <strong>2–48 hours</strong> for an email from BeReal</li>
+                    <li>
+                        Download <strong>BeReal Profile Activity&amp;Data.zip</strong><br />
+                        <span class="help-note">(not the .json.gz — that one is not needed)</span>
+                    </li>
+                    <li>Upload it using the drop zone below ↓</li>
+                </ol>
+            </div>
+            }
+        </div>
+
         <input #fileInput type="file" accept=".zip" class="hidden-input" (change)="onFileSelected($event)" />
 
         <div class="drop-zone" [class.drag-over]="isDragOver()" [class.loading]="loading()"
