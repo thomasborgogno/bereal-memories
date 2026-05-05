@@ -26,7 +26,9 @@
                 }
             </button>
             }
-            <button class="logout-btn" (click)="logout()">Logout</button>
+            <button class="logout-btn" (click)="logout()">
+                {{ localMemories.isLocalMode() ? '← Back' : 'Logout' }}
+            </button>
         </div>
     </header>
 

@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { BerealService } from '../../core/services/bereal.service';
+import { LocalMemoriesService } from '../../core/services/local-memories.service';
 import { Memory } from '../../core/models/memory.models';
 import { MemoryCardComponent } from './memory-card.component';
 
@@ -42,6 +43,7 @@ export class MemoriesComponent implements OnInit, OnDestroy {
     constructor(
         private bereal: BerealService,
         private auth: AuthService,
+        readonly localMemories: LocalMemoriesService,
         private router: Router
     ) { }
 
@@ -60,6 +62,10 @@ export class MemoriesComponent implements OnInit, OnDestroy {
         this.loading.set(true);
         this.loadError.set(null);
         try {
+            if (this.localMemories.isLocalMode()) {
+                this.memories.set(this.localMemories.memories());
+                return;
+            }
             const data = await this.bereal.getAllMemories();
             if (data.length > 0) {
                 console.log('[memories] first item keys:', Object.keys(data[0]));
@@ -87,7 +93,11 @@ export class MemoriesComponent implements OnInit, OnDestroy {
     }
 
     logout(): void {
-        this.auth.logout();
+        if (this.localMemories.isLocalMode()) {
+            this.localMemories.clear();
+        } else {
+            this.auth.logout();
+        }
         this.router.navigate(['/']);
     }
 

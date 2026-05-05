@@ -1,0 +1,46 @@
+<div class="import-container">
+    <div class="import-card">
+        <div class="logo">
+            <span class="logo-text">BeReal.</span>
+            <p class="logo-sub">Import Data Export</p>
+        </div>
+
+        <p class="description">
+            Upload your <strong>BeReal Profile Activity&amp;Data.zip</strong> file to browse and
+            download your memories without signing in.
+        </p>
+
+        <input #fileInput type="file" accept=".zip" class="hidden-input" (change)="onFileSelected($event)" />
+
+        <div class="drop-zone" [class.drag-over]="isDragOver()" [class.loading]="loading()"
+            (click)="!loading() && openFilePicker()" (dragover)="onDragOver($event)" (dragleave)="onDragLeave()"
+            (drop)="onDrop($event)">
+            @if (loading()) {
+            <div class="parse-state">
+                <div class="spinner"></div>
+                @if (progress() !== null) {
+                <p class="parse-label">Reading ZIP… {{ progress() }}%</p>
+                <div class="progress-track">
+                    <div class="progress-fill" [style.width.%]="progress()!"></div>
+                </div>
+                } @else {
+                <p class="parse-label">Processing…</p>
+                }
+            </div>
+            } @else {
+            <div class="drop-icon">📦</div>
+            <p class="drop-primary">Drop your ZIP here</p>
+            <p class="drop-secondary">or click to browse</p>
+            <p class="drop-hint">BeReal Profile Activity&amp;Data.zip</p>
+            }
+        </div>
+
+        @if (error()) {
+        <p class="error">{{ error() }}</p>
+        }
+
+        <button type="button" class="back-btn" (click)="goBack()" [disabled]="loading()">
+            ← Back
+        </button>
+    </div>
+</div>

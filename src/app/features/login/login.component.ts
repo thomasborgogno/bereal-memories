@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
 
+type Mode = 'select' | 'login';
 type Step = 'phone' | 'otp';
 
 @Component({
@@ -17,6 +18,7 @@ export class LoginComponent {
     phoneNumber = '';
     otpCode = '';
 
+    readonly mode = signal<Mode>('select');
     readonly step = signal<Step>('phone');
     readonly loading = signal(false);
     readonly error = signal<string | null>(null);
@@ -56,6 +58,22 @@ export class LoginComponent {
 
     goBack(): void {
         this.step.set('phone');
+        this.otpCode = '';
+        this.error.set(null);
+    }
+
+    selectLogin(): void {
+        this.mode.set('login');
+    }
+
+    selectImport(): void {
+        this.router.navigate(['/import']);
+    }
+
+    backToSelect(): void {
+        this.mode.set('select');
+        this.step.set('phone');
+        this.phoneNumber = '';
         this.otpCode = '';
         this.error.set(null);
     }
