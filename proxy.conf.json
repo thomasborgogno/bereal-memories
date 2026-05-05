@@ -6,7 +6,7 @@
         "pathRewrite": {
             "^/bereal-auth": ""
         },
-        "logLevel": "debug"
+        "logLevel": "warn"
     },
     "/securetoken-api": {
         "target": "https://securetoken.googleapis.com",
@@ -15,7 +15,7 @@
         "pathRewrite": {
             "^/securetoken-api": ""
         },
-        "logLevel": "debug"
+        "logLevel": "warn"
     },
     "/identitytoolkit-api": {
         "target": "https://identitytoolkit.googleapis.com",
@@ -24,7 +24,7 @@
         "pathRewrite": {
             "^/identitytoolkit-api": ""
         },
-        "logLevel": "debug"
+        "logLevel": "warn"
     },
     "/bereal-api": {
         "target": "https://mobile-l7.bereal.com/api",
@@ -33,7 +33,7 @@
         "pathRewrite": {
             "^/bereal-api": ""
         },
-        "logLevel": "debug"
+        "logLevel": "warn"
     },
     "/bereal-storage": {
         "target": "https://storage.bere.al",
@@ -42,7 +42,7 @@
         "pathRewrite": {
             "^/bereal-storage": ""
         },
-        "logLevel": "debug"
+        "logLevel": "warn"
     },
     "/bereal-cdn": {
         "target": "https://cdn-us1.bereal.network",
@@ -51,6 +51,6 @@
         "pathRewrite": {
             "^\/bereal-cdn": ""
         },
-        "logLevel": "debug"
+        "logLevel": "warn"
     }
 }

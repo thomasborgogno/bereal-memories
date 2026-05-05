@@ -1,11 +1,13 @@
-export const FIREBASE_API_KEY = 'AIzaSyCgNTZt6gzPMh-2voYXOvrt_UR_gpGl83Q';
+import { environment } from '../../environments/environment';
+
+export const FIREBASE_API_KEY = environment.firebaseApiKey;
 export const BEREAL_CLIENT_ID = 'ios';
-export const BEREAL_CLIENT_SECRET = '962D357B-B134-4AB6-8F53-BEA2B7255420';
-export const RECAPTCHA_SITE_KEY = '6LfqjDgoAAAAAPy3wiCP92R3nDyNgDDIsjZACoVT';
+export const BEREAL_CLIENT_SECRET = environment.berealClientSecret;
+export const RECAPTCHA_SITE_KEY = environment.recaptchaSiteKey;
 export const BEREAL_APP_VERSION = '4.24.0';
 export const BEREAL_APP_VERSION_CODE = '20523';
 /** HMAC-SHA256 key used to compute `bereal-signature` (hex-encoded). */
-export const BEREAL_HMAC_KEY_HEX = '3536303337663461663232666236393630663363643031346532656337316233';
+export const BEREAL_HMAC_KEY_HEX = environment.berealHmacKeyHex;
 const DEVICE_ID_KEY = 'bereal_device_id';
 
 /** Returns a persistent device UUID (created once, stored in localStorage). */

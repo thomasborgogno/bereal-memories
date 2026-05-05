@@ -14,7 +14,7 @@ type Step = 'phone' | 'otp';
     styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-    phoneNumber = '+393473577388';
+    phoneNumber = '';
     otpCode = '';
 
     readonly step = signal<Step>('phone');

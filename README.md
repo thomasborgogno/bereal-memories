@@ -1,59 +1,83 @@
-# BerealMemories
+# BeReal Memories Downloader
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.2.
+A personal Angular web app that lets you log in to your BeReal account and download all your memories (photos + videos) locally.
 
-## Development server
+## What it does
 
-To start a local development server, run:
+- Authenticates with your BeReal account via phone number + OTP (one-time password)
+- Fetches all your memories from the BeReal API
+- Lets you browse and filter memories by date range
+- Downloads memories as a ZIP archive directly in the browser
+
+## How it works
+
+The app communicates with the private BeReal mobile API (reverse-engineered from the iOS app) through a local development proxy (`proxy.conf.json`) that forwards requests to BeReal's servers. Authentication uses Firebase phone-number OTP, followed by BeReal token exchange.
+
+> **Note:** This app uses BeReal's unofficial private API. It is intended for personal use only. Use it to back up your own memories. Respect BeReal's Terms of Service.
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+
+- [Angular CLI](https://angular.dev/tools/cli) 21+
+
+```bash
+npm install -g @angular/cli
+```
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure secrets
+
+Copy the example environment file and fill in the real values:
+
+```bash
+cp src/environments/environment.example.ts src/environments/environment.ts
+cp src/environments/environment.example.ts src/environments/environment.prod.ts
+```
+
+Edit both files and replace the placeholder strings with the actual values. The secrets needed are publicly available in open-source BeReal reverse-engineering projects (e.g. [userbradley/BeReal-API](https://github.com/userbradley/BeReal-API)).
+
+## Running the app
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open your browser at `http://localhost:4200/`.
 
-## Code scaffolding
+The dev server proxies all BeReal API calls through `proxy.conf.json`, which is required to avoid CORS errors.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Building for production
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Build artifacts are placed in `dist/`. The production build automatically uses `environment.prod.ts`.
 
-## Running unit tests
+> **Hosting warning:** The proxy only works with the dev server. A production deployment requires a separate backend proxy (e.g. Nginx, Cloudflare Worker, or a Node server) to forward BeReal API requests, since browsers cannot call those endpoints directly due to CORS restrictions.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Running tests
 
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+## Tech stack
 
-For end-to-end (e2e) testing, run:
+- [Angular 21](https://angular.dev/) (standalone components, signals)
+- [TypeScript](https://www.typescriptlang.org/)
+- [RxJS](https://rxjs.dev/)
+- [JSZip](https://stuk.github.io/jszip/) + [FileSaver.js](https://github.com/eligrey/FileSaver.js/) for in-browser ZIP download
 
-```bash
-ng e2e
-```
+## Security & Privacy
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Your BeReal token is stored in `localStorage` for session persistence and is never sent to any server other than BeReal's own endpoints.
+- This app is client-side only — no backend collects or stores your data.
+- For personal / local use only. Do not deploy publicly without understanding the implications (see hosting warning above).
